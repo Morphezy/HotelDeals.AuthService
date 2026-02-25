@@ -28,12 +28,25 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
 
     }
 
-    [HttpGet("/Auth/RegisterDelete")]
+    [HttpDelete("/Auth/RegisterDelete")]
     public async Task<IActionResult> DeleteFromReg(string name)
     {
         var res = await _registrationRepository.Delete(name);
         return res.isSuccess ? Ok(res.Value) : BadRequest(res.Error);
     }
-    
+
+    [HttpGet("/Auth/Login")]
+    public async Task<IActionResult> AddUser(string userName, string password)
+    {
+        var res = await _usersRepository.SaveUser(userName, password);
+        return res.isSuccess ? Ok(res.Value) : BadRequest(res.Error);
+    }
+
+    public async Task<IActionResult> GetUser(string userName)
+    {
+        var user = await _usersRepository.GetUser(userName);
+        return user is null ? NotFound() : Ok(user);
+        
+    }
     
 }
