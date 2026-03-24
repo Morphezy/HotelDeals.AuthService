@@ -24,7 +24,7 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
      }
      var model = new Registration() { Password = pass, UserName = userName }; 
      var res =  await _registrationRepository.SaveUser(model);
-     return  res.isSuccess? Ok(res.Value) : BadRequest(res.Error);
+     return  res.isSuccess? Ok(res.Value.Password) : BadRequest(res.Error);
 
     }
 
