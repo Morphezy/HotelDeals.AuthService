@@ -8,5 +8,5 @@ public interface IUsersRepository
     public Task<Result<User>> SaveUser(string userName, string password);
     public Task<User?> GetUser(string userName);
     public Task<Result<User>> Delete(string userName);
-    public Task<bool> GetUserByPassword(string password);
+    public Task<bool> AuthorizeUser(string password, string userName);
 }

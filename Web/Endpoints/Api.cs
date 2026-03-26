@@ -1,5 +1,7 @@
 using Application.Repositories;
+using Application.Services;
 using Domain.Entities;
+using Infrastructure.Data;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,11 +9,13 @@ namespace Web.Endpoints;
 
 [Controller]
 public class Api(ILogger<Api> logger, IRegistrationRepository registrationRepository,
-    IUsersRepository usersRepository) : ControllerBase
+    IUsersRepository usersRepository, ITokenService tokenService, AuthDbContext context) : ControllerBase
 {
+    AuthDbContext _context = context;
     ILogger<Api> _logger = logger;
     IRegistrationRepository _registrationRepository = registrationRepository;
     IUsersRepository _usersRepository = usersRepository;
+    ITokenService _tokenService = tokenService;
     
     
     [HttpGet("/Auth/Register")]
@@ -31,8 +35,26 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
     [HttpDelete("/Auth/RegisterDelete")]
     public async Task<IActionResult> DeleteFromReg(string name)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try{
+            await transaction.CreateSavepointAsync("before");
         var res = await _registrationRepository.Delete(name);
-        return res.isSuccess ? Ok(res.Value) : BadRequest(res.Error);
+        if (res.isSuccess)
+        {
+            await transaction.CommitAsync();
+            return Ok(res.Value);
+        }
+        else
+        {
+            await transaction.RollbackToSavepointAsync("before");
+            return BadRequest(res.Error);
+        }
+        }
+        catch(Exception)
+        {
+          await transaction.RollbackToSavepointAsync("before");  
+          return BadRequest("try again");
+        }
     }
 
     [HttpGet("/Auth/Login")]
@@ -47,6 +69,20 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
         var user = await _usersRepository.GetUser(userName);
         return user is null ? NotFound() : Ok(user);
         
+    }
+
+    [HttpPost("/Auth/Authorize")]
+    public async Task<IActionResult> Authorize(string password, string userName)
+    {
+        var res = await _registrationRepository.AuthorizeUser(password, userName);
+        if (!res)
+        {
+            return Unauthorized("Invalid credentials");
+        }
+
+        var token = await _tokenService.GenerateToken(userName);
+        await _usersRepository.SaveUser(userName, token);
+        return Ok();
     }
     
 }

@@ -65,8 +65,8 @@ public class UsersRepository(AuthDbContext context, ILogger<UsersRepository> log
         }
     }
 
-    public async Task<bool> GetUserByPassword(string password)
+    public Task<bool> AuthorizeUser(string password, string userName)
     {
-        return await _context.Users.AnyAsync(x => x.Token == password);
+        throw new NotImplementedException();
     }
 }

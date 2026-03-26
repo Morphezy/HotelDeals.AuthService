@@ -9,5 +9,6 @@ public interface IRegistrationRepository
     public Task<Registration?> GetUserPassword(string userName);
     public Task<Registration?> GetUserName(string password);
     public Task<Result<Registration>> Delete(string userName);
+    public Task<bool> AuthorizeUser(string password, string userName);
     
 }

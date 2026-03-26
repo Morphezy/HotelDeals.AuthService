@@ -64,4 +64,11 @@ public class RegistrationRepository(AuthDbContext context, ILogger<RegistrationR
             return new Error("RegistrationDeleteFailed", ErrorType.Validation, ex.Message);
         }
     }
+
+    public async Task<bool> AuthorizeUser(string password, string userName)
+    {
+        var user = await _context.Registrations
+            .FirstOrDefaultAsync(x => x.UserName == userName);
+        return user?.Password == password;
+    }
 }

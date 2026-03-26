@@ -1,5 +1,7 @@
 using Application.Repositories;
+using Application.Services;
 using Infrastructure.Repositories;
+using Web.Services;
 
 namespace Web;
 
@@ -14,7 +16,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IRegistrationRepository, RegistrationRepository>();
         services.AddScoped<IUsersRepository, UsersRepository>();
-        
+        services.AddScoped<ITokenService, JwtService>();
         
         services.AddControllers();
     }
