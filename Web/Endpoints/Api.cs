@@ -16,19 +16,20 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
     IRegistrationRepository _registrationRepository = registrationRepository;
     IUsersRepository _usersRepository = usersRepository;
     ITokenService _tokenService = tokenService;
-    
-    
+
+
     [HttpGet("/Auth/Register")]
-    public async Task<IActionResult> SaveToReg(string  userName)
+    public async Task<IActionResult> SaveToReg(string userName)
     {
-     var pass = RandomStringGenService.RandomString(6);
-     if (pass is null)
-     {
-         return BadRequest("try again");
-     }
-     var model = new Registration() { Password = pass, UserName = userName }; 
-     var res =  await _registrationRepository.SaveUser(model);
-     return  res.isSuccess? Ok(res.Value.Password) : BadRequest(res.Error);
+        var pass = RandomStringGenService.RandomString(6);
+        if (pass is null)
+        {
+            return BadRequest("try again");
+        }
+
+        var model = new Registration() { Password = pass, UserName = userName };
+        var res = await _registrationRepository.SaveUser(model);
+        return res.isSuccess ? Ok(res.Value.Password) : BadRequest(res.Error);
 
     }
 
