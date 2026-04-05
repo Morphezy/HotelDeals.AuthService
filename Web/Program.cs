@@ -7,12 +7,14 @@ using Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var jwtKey = builder.Configuration["JwtKey"] ?? throw new InvalidOperationException("JwtKey is not configured.");
+var jwtIssuer = builder.Configuration["JwtIssuer"] ?? throw new InvalidOperationException("JwtIssuer is not configured.");
+var jwtAudience = builder.Configuration["JwtAudience"] ?? throw new InvalidOperationException("JwtAudience is not configured.");
 
-var jwtKey = builder.Configuration.GetSection("JwtKey").Value;
-var jwtIssuer = builder.Configuration.GetSection("JwtIssuer").Value;
-var jwtAudience = builder.Configuration.GetSection("JwtAudience").Value;
-
-
+if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException("JwtKey must be at least 32 bytes for HS256.");
+}
 
 builder.Services.AddCors(options =>
 {
@@ -29,6 +31,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer,
             ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))

@@ -69,4 +69,9 @@ public class UsersRepository(AuthDbContext context, ILogger<UsersRepository> log
     {
         throw new NotImplementedException();
     }
+
+    public async Task<List<User>> GetUsers()
+    {
+        return await _context.Users.ToListAsync();
+    }
 }

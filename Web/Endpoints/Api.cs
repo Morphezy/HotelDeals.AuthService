@@ -1,8 +1,10 @@
+using Application.Dtos;
 using Application.Repositories;
 using Application.Services;
 using Domain.Entities;
 using Infrastructure.Data;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Endpoints;
@@ -25,6 +27,12 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
         if (pass is null)
         {
             return BadRequest("try again");
+        }
+
+        if (await _registrationRepository.IsUserExists(userName))
+        {
+            var user = await _registrationRepository.ChangePassword(userName, pass);
+            return Ok(user.Password);
         }
 
         var model = new Registration() { Password = pass, UserName = userName };
@@ -59,9 +67,9 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
     }
 
     [HttpGet("/Auth/Login")]
-    public async Task<IActionResult> AddUser(string userName, string password)
+    public async Task<IActionResult> AddUser([FromBody]UserDto dto)
     {
-        var res = await _usersRepository.SaveUser(userName, password);
+        var res = await _usersRepository.SaveUser(dto.userName, dto.password);
         return res.isSuccess ? Ok(res.Value) : BadRequest(res.Error);
     }
 
@@ -73,17 +81,28 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
     }
 
     [HttpPost("/Auth/Authorize")]
-    public async Task<IActionResult> Authorize(string password, string userName)
+    public async Task<IActionResult> Authorize([FromBody]UserDto dto)
     {
-        var res = await _registrationRepository.AuthorizeUser(password, userName);
+        var res = await _registrationRepository.AuthorizeUser(dto.password, dto.userName);
         if (!res)
         {
             return Unauthorized("Invalid credentials");
         }
 
-        var token = await _tokenService.GenerateToken(userName);
-        await _usersRepository.SaveUser(userName, token);
+        var token = await _tokenService.GenerateToken(dto.userName);
+        await _usersRepository.SaveUser(dto.userName, token);
         return Ok();
     }
     
+    [HttpGet("/Auth/GetAll")]
+    public async Task<IActionResult> GetAll()
+    {
+        return Ok(await _registrationRepository.GetAllUsers());
+    }
+    
+    [HttpGet("/Auth/GetRegistered")]
+    public async Task<IActionResult> GetAllRegistered()
+    {
+        return Ok(await _usersRepository.GetUsers());
+    }
 }

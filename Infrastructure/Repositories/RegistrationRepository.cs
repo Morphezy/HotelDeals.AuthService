@@ -71,4 +71,23 @@ public class RegistrationRepository(AuthDbContext context, ILogger<RegistrationR
             .FirstOrDefaultAsync(x => x.UserName == userName);
         return user?.Password == password;
     }
+
+    public async Task<bool> IsUserExists(string userName)
+    {
+        var user = await _context.Registrations.FirstOrDefaultAsync(x => x.UserName == userName);
+        return  user != null;
+    }
+
+    public async Task<Registration> ChangePassword(string UserName, string NewPassword)
+    {
+        var user = await _context.Registrations.FirstOrDefaultAsync(a => a.UserName == UserName);
+        user.Password = NewPassword;
+        await _context.SaveChangesAsync();
+        return user;
+    }
+
+    public async Task<List<Registration>> GetAllUsers()
+    {
+        return await _context.Registrations.ToListAsync();
+    }
 }
