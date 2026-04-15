@@ -20,7 +20,7 @@ services:
   frontend:
     image: hoteldeals-front
     build:
-      context: ../../Desktop/HotelDeals.Front
+      context: ../HotelDeals.Front
       dockerfile: Dockerfile
     environment:
       NODE_ENV: production
@@ -49,7 +49,7 @@ services:
   search-service:
     image: search-service
     build:
-      context: ../Services/SearchService
+      context: ../HotelDeals.SearchService
       dockerfile: SearchService.Web/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Development
