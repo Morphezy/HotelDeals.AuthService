@@ -46,12 +46,19 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
 
     }
 
+    [HttpGet("/Auth/Confirm")]
+    public async Task<IActionResult> Confirm([FromQuery] ConfirmRegistrationRequestDto dto)
+    {
+        throw new Exception();
+    }
+    
+    
     [HttpDelete("/Auth/RegisterDelete")]
     public async Task<IActionResult> DeleteFromReg(string name)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try{
-            await transaction.CreateSavepointAsync("befsore");
+            await transaction.CreateSavepointAsync("before");
         var res = await _registrationRepository.Delete(name);
         if (res.isSuccess)
         {
