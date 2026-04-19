@@ -13,12 +13,13 @@ public class UsersRepository(AuthDbContext context, ILogger<UsersRepository> log
     private readonly AuthDbContext _context = context;
     private readonly ILogger<UsersRepository> _logger = logger;
 
-    public async Task<Result<User>> SaveUser(string userName, string password)
+    public async Task<Result<User>> SaveUser(string userName, string password, string telegramId)
     {
         var user = new User
         {
             UserName = userName,
-            Token = password
+            Token = password,
+            TelegramId = telegramId
         };
 
         try

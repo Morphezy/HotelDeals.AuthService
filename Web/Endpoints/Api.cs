@@ -36,9 +36,9 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
         else
         {
             pass = RandomStringGenService.RandomString(6);
-            var model = new Registration() { Password = pass, UserName = userName };
+            var model = new Registration() { Code = pass, UserName = userName };
             var res = await _registrationRepository.SaveUser(model);
-            return res.isSuccess ? Ok(res.Value.Password) : BadRequest(res.Error);
+            return res.isSuccess ? Ok(res.Value.Code) : BadRequest(res.Error);
         }
         
 
@@ -54,14 +54,21 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
         {
             var token = await _tokenService.GenerateToken(dto.UserName);
             await _registrationRepository.Delete(dto.UserName);
-            await _usersRepository.SaveUser(dto.UserName, token);
+            await _usersRepository.SaveUser(dto.UserName, token, dto.TelegramId);
+            await _hubContext.Clients.Group(confirmResult.Value.Id.ToString())
+                .SendAsync("RegistrationConfirmed", new RegistrationConfirmedDto
+                {
+                    RegistrationId = confirmResult.Value.Id,
+                    UserName = confirmResult.Value.UserName,
+                    Token = token
+                });
         }
         else
         {
             return BadRequest(401);
             
         }
-        return Ok();
+        
         
         
     }

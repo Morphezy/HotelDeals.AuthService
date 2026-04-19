@@ -33,13 +33,13 @@ public class RegistrationRepository(AuthDbContext context, ILogger<RegistrationR
     {
         var model =await _context.Registrations
             .FirstOrDefaultAsync(x => x.UserName == userName);
-        return model.Password;
+        return model.Code;
     }
 
     public async Task<Registration?> GetUserName(string password)
     {
         return await _context.Registrations
-            .FirstOrDefaultAsync(x => x.Password == password);
+            .FirstOrDefaultAsync(x => x.Code == password);
     }
 
     public async Task<Result<Registration>> Delete(string userName)
@@ -70,7 +70,7 @@ public class RegistrationRepository(AuthDbContext context, ILogger<RegistrationR
     {
         var user = await _context.Registrations
             .FirstOrDefaultAsync(x => x.UserName == userName);
-        return user?.Password == password;
+        return user?.Code == password;
     }
 
     public async Task<bool> IsUserExists(string userName)
@@ -82,7 +82,7 @@ public class RegistrationRepository(AuthDbContext context, ILogger<RegistrationR
     public async Task<Registration> ChangePassword(string UserName, string NewPassword)
     {
         var user = await _context.Registrations.FirstOrDefaultAsync(a => a.UserName == UserName);
-        user.Password = NewPassword;
+        user.Code = NewPassword;
         await _context.SaveChangesAsync();
         return user;
     }
@@ -95,6 +95,6 @@ public class RegistrationRepository(AuthDbContext context, ILogger<RegistrationR
     public async Task<bool> Confirm(string password, string name)
     {
         var user = await _context.Registrations.FirstOrDefaultAsync(x => x.UserName == name);
-        return  user?.Password == password;
+        return  user?.Code == password;
     }
 }
