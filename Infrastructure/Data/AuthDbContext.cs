@@ -12,6 +12,16 @@ public DbSet<User> Users { get; set; }
 
 protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
-    
+    modelBuilder.Entity<Registration>()
+        .HasIndex(x => x.UserName)
+        .IsUnique();
+
+    modelBuilder.Entity<Registration>()
+        .HasIndex(x => x.TelegramUserId)
+        .IsUnique();
+
+    modelBuilder.Entity<User>()
+        .HasIndex(x => x.UserName)
+        .IsUnique();
 }
 }

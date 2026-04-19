@@ -15,15 +15,24 @@ public class UsersRepository(AuthDbContext context, ILogger<UsersRepository> log
 
     public async Task<Result<User>> SaveUser(string userName, string password)
     {
-        var user = new User
+        var user = await _context.Users
+            .FirstOrDefaultAsync(x => x.UserName == userName);
+
+        var isNewUser = user is null;
+        user ??= new User
         {
-            UserName = userName,
-            Token = password
+            UserName = userName
         };
+
+        user.Token = password;
 
         try
         {
-            await _context.Users.AddAsync(user);
+            if (isNewUser)
+            {
+                await _context.Users.AddAsync(user);
+            }
+
             await _context.SaveChangesAsync();
             _logger.LogInformation("User created successfully");
             return user;

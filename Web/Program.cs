@@ -43,6 +43,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 builder.Services.AddDependencyInjection();
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("AuthDb")));
@@ -66,6 +67,7 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<Web.Hubs.AuthHub>("/hubs/auth");
 app.UseHttpsRedirection();
 
 
@@ -73,4 +75,3 @@ app.UseHttpsRedirection();
 
 
 app.Run();
-

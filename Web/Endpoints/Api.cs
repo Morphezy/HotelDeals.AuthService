@@ -1,78 +1,119 @@
 using Application.Dtos;
 using Application.Repositories;
 using Application.Services;
-using Domain.Entities;
 using Infrastructure.Data;
 using Infrastructure.Services;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Web.Hubs;
 
 namespace Web.Endpoints;
 
 [Controller]
-public class Api(ILogger<Api> logger, IRegistrationRepository registrationRepository,
-    IUsersRepository usersRepository, ITokenService tokenService, AuthDbContext context) : ControllerBase
+public class Api(
+    ILogger<Api> logger,
+    IRegistrationRepository registrationRepository,
+    IUsersRepository usersRepository,
+    ITokenService tokenService,
+    AuthDbContext context,
+    IHubContext<AuthHub> hubContext) : ControllerBase
 {
-    AuthDbContext _context = context;
-    ILogger<Api> _logger = logger;
-    IRegistrationRepository _registrationRepository = registrationRepository;
-    IUsersRepository _usersRepository = usersRepository;
-    ITokenService _tokenService = tokenService;
+    private readonly AuthDbContext _context = context;
+    private readonly ILogger<Api> _logger = logger;
+    private readonly IRegistrationRepository _registrationRepository = registrationRepository;
+    private readonly IUsersRepository _usersRepository = usersRepository;
+    private readonly ITokenService _tokenService = tokenService;
+    private readonly IHubContext<AuthHub> _hubContext = hubContext;
 
-
-    [HttpGet("/Auth/Register")]
-    public async Task<IActionResult> SaveToReg(string userName)
+    [HttpPost("/Auth/Register")]
+    public async Task<IActionResult> SaveToReg([FromBody] RegisterRequestDto dto)
     {
-        string pass;
-        if (await _registrationRepository.IsUserExists(userName))
+        if (string.IsNullOrWhiteSpace(dto.UserName))
         {
-            pass = await _registrationRepository.GetUserPassword(userName);
-            if (pass is null)
+            return BadRequest("UserName is required.");
+        }
+
+        if (dto.TelegramUserId <= 0)
+        {
+            return BadRequest("TelegramUserId is required.");
+        }
+
+        var code = RandomStringGenService.RandomString(6);
+        var expiresAtUtc = DateTime.UtcNow.AddMinutes(10);
+        var result = await _registrationRepository.CreateOrUpdatePending(dto.UserName, dto.TelegramUserId, code, expiresAtUtc);
+        if (!result.isSuccess || result.Value is null)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return Ok(new RegisterResponseDto
+        {
+            RegistrationId = result.Value.Id,
+            UserName = result.Value.UserName,
+            Code = result.Value.Code,
+            ExpiresAtUtc = result.Value.ExpiresAtUtc
+        });
+    }
+
+    [HttpPost("/Auth/Confirm")]
+    public async Task<IActionResult> Confirm([FromBody] ConfirmRegistrationRequestDto dto)
+    {
+        if (dto.TelegramUserId <= 0)
+        {
+            return BadRequest("TelegramUserId is required.");
+        }
+
+        var confirmResult = await _registrationRepository.Confirm(dto.TelegramUserId, dto.Code);
+        if (!confirmResult.isSuccess || confirmResult.Value is null)
+        {
+            return BadRequest(confirmResult.Error);
+        }
+
+        var token = await _tokenService.GenerateToken(confirmResult.Value.UserName);
+        var saveUserResult = await _usersRepository.SaveUser(confirmResult.Value.UserName, token);
+        if (!saveUserResult.isSuccess)
+        {
+            return BadRequest(saveUserResult.Error);
+        }
+
+        await _hubContext.Clients.Group(confirmResult.Value.Id.ToString())
+            .SendAsync("RegistrationConfirmed", new RegistrationConfirmedDto
             {
-                return BadRequest("try again");
-            }
-            return Ok(pass);
-        }
-        else
-        {
-            pass = RandomStringGenService.RandomString(6);
-            var model = new Registration() { Password = pass, UserName = userName };
-            var res = await _registrationRepository.SaveUser(model);
-            return res.isSuccess ? Ok(res.Value.Password) : BadRequest(res.Error);
-        }
-        
+                RegistrationId = confirmResult.Value.Id,
+                UserName = confirmResult.Value.UserName,
+                Token = token
+            });
 
-        
-
+        _logger.LogInformation("Registration confirmed and JWT pushed for {UserName}", confirmResult.Value.UserName);
+        return Ok();
     }
 
     [HttpDelete("/Auth/RegisterDelete")]
     public async Task<IActionResult> DeleteFromReg(string name)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync();
-        try{
+        try
+        {
             await transaction.CreateSavepointAsync("before");
-        var res = await _registrationRepository.Delete(name);
-        if (res.isSuccess)
-        {
-            await transaction.CommitAsync();
-            return Ok(res.Value);
-        }
-        else
-        {
+            var res = await _registrationRepository.Delete(name);
+            if (res.isSuccess)
+            {
+                await transaction.CommitAsync();
+                return Ok(res.Value);
+            }
+
             await transaction.RollbackToSavepointAsync("before");
             return BadRequest(res.Error);
         }
-        }
-        catch(Exception)
+        catch (Exception)
         {
-          await transaction.RollbackToSavepointAsync("before");  
-          return BadRequest("try again");
+            await transaction.RollbackToSavepointAsync("before");
+            return BadRequest("try again");
         }
     }
 
-    [HttpGet("/Auth/Login")]
-    public async Task<IActionResult> AddUser([FromBody]UserDto dto)
+    [HttpPost("/Auth/Login")]
+    public async Task<IActionResult> AddUser([FromBody] UserDto dto)
     {
         var res = await _usersRepository.SaveUser(dto.userName, dto.password);
         return res.isSuccess ? Ok(res.Value) : BadRequest(res.Error);
@@ -82,29 +123,14 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
     {
         var user = await _usersRepository.GetUser(userName);
         return user is null ? NotFound() : Ok(user);
-        
     }
 
-    [HttpPost("/Auth/Authorize")]
-    public async Task<IActionResult> Authorize([FromBody]UserDto dto)
-    {
-        var res = await _registrationRepository.AuthorizeUser(dto.password, dto.userName);
-        if (!res)
-        {
-            return Unauthorized("Invalid credentials");
-        }
-
-        var token = await _tokenService.GenerateToken(dto.userName);
-        await _usersRepository.SaveUser(dto.userName, token);
-        return Ok();
-    }
-    
     [HttpGet("/Auth/GetAll")]
     public async Task<IActionResult> GetAll()
     {
         return Ok(await _registrationRepository.GetAllUsers());
     }
-    
+
     [HttpGet("/Auth/GetRegistered")]
     public async Task<IActionResult> GetAllRegistered()
     {
