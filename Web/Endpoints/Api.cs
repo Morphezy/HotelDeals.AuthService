@@ -88,6 +88,11 @@ public class Api(
         return Ok();
     }
 
+    public async Task<IActionResult> Confirm(ConfirmRegistrationRequestDto dto)
+    {
+        throw new Exception();
+    }
+
     [HttpDelete("/Auth/RegisterDelete")]
     public async Task<IActionResult> DeleteFromReg(string name)
     {
