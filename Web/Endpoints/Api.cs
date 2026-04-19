@@ -49,7 +49,20 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
     [HttpGet("/Auth/Confirm")]
     public async Task<IActionResult> Confirm([FromQuery] ConfirmRegistrationRequestDto dto)
     {
-        var res = _registrationRepository.Confirm(dto.Password, dto.UserName);
+        var res = await _registrationRepository.Confirm(dto.Password, dto.UserName);
+        if (res)
+        {
+            var token = await _tokenService.GenerateToken(dto.UserName);
+            await _registrationRepository.Delete(dto.UserName);
+            await _usersRepository.SaveUser(dto.UserName, token);
+        }
+        else
+        {
+            return BadRequest(401);
+            
+        }
+        return Ok();
+        
         
     }
     
