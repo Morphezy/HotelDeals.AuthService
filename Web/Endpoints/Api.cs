@@ -51,7 +51,7 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
     {
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try{
-            await transaction.CreateSavepointAsync("before");
+            await transaction.CreateSavepointAsync("befsore");
         var res = await _registrationRepository.Delete(name);
         if (res.isSuccess)
         {
