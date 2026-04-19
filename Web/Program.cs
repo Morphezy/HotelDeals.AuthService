@@ -16,7 +16,7 @@ if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
 {
     throw new InvalidOperationException("JwtKey must be at least 32 bytes for HS256.");
 }
-
+builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
