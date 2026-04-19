@@ -2,6 +2,7 @@ namespace Application.Dtos;
 
 public class ConfirmRegistrationRequestDto
 {
-    public long TelegramUserId { get; set; }
-    public string Code { get; set; } = string.Empty;
+    public string TelegramId { get; set; }
+    public string UserName { get; set; }
+    public string Password { get; set; } = string.Empty;
 }

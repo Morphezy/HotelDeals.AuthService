@@ -13,5 +13,5 @@ public interface IRegistrationRepository
     public Task<bool> IsUserExists(string userName);
     public Task<Registration> ChangePassword(string UserName, string NewPassword);
     public Task<List<Registration>> GetAllUsers();
-    public Task<Registration> Confirm(string password, string name);
+    public Task<bool> Confirm(string password, string name);
 }

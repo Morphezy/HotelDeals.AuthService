@@ -49,7 +49,8 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
     [HttpGet("/Auth/Confirm")]
     public async Task<IActionResult> Confirm([FromQuery] ConfirmRegistrationRequestDto dto)
     {
-        throw new Exception();
+        var res = _registrationRepository.Confirm(dto.Password, dto.UserName);
+        
     }
     
     
