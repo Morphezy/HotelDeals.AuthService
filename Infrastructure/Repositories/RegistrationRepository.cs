@@ -91,4 +91,10 @@ public class RegistrationRepository(AuthDbContext context, ILogger<RegistrationR
     {
         return await _context.Registrations.ToListAsync();
     }
+
+    public async Task<Registration> Confirm(string telegramId, string name)
+    {
+        var user = await _context.Registrations.FirstOrDefaultAsync(x => x.UserName == name);
+        
+    }
 }
