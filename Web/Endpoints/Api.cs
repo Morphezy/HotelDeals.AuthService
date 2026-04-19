@@ -23,21 +23,26 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
     [HttpGet("/Auth/Register")]
     public async Task<IActionResult> SaveToReg(string userName)
     {
-        var pass = RandomStringGenService.RandomString(6);
-        if (pass is null)
-        {
-            return BadRequest("try again");
-        }
-
+        string pass;
         if (await _registrationRepository.IsUserExists(userName))
         {
-            var user = await _registrationRepository.ChangePassword(userName, pass);
-            return Ok(user.Password);
+            pass = await _registrationRepository.GetUserPassword(userName);
+            if (pass is null)
+            {
+                return BadRequest("try again");
+            }
+            return Ok(pass);
         }
+        else
+        {
+            pass = RandomStringGenService.RandomString(6);
+            var model = new Registration() { Password = pass, UserName = userName };
+            var res = await _registrationRepository.SaveUser(model);
+            return res.isSuccess ? Ok(res.Value.Password) : BadRequest(res.Error);
+        }
+        
 
-        var model = new Registration() { Password = pass, UserName = userName };
-        var res = await _registrationRepository.SaveUser(model);
-        return res.isSuccess ? Ok(res.Value.Password) : BadRequest(res.Error);
+        
 
     }
 

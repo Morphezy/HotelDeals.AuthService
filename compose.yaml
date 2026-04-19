@@ -21,7 +21,7 @@ services:
     image: hoteldeals-front
     build:
       context: ../HotelDeals.Front
-      dockerfile: Dockerfile
+      dockerfile: ../HotelDeals.AuthService/docker/frontend.Dockerfile
     environment:
       NODE_ENV: production
     ports:

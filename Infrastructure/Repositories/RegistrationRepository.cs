@@ -29,10 +29,11 @@ public class RegistrationRepository(AuthDbContext context, ILogger<RegistrationR
         }
     }
 
-    public async Task<Registration?> GetUserPassword(string userName)
+    public async Task<string?> GetUserPassword(string userName)
     {
-        return await _context.Registrations
+        var model =await _context.Registrations
             .FirstOrDefaultAsync(x => x.UserName == userName);
+        return model.Password;
     }
 
     public async Task<Registration?> GetUserName(string password)
