@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Web;
+using Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,7 +68,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.UseHttpsRedirection();
-
+app.MapHub<AuthHub>("/hub");
 
 
 

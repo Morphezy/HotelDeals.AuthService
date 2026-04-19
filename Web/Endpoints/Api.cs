@@ -6,13 +6,22 @@ using Infrastructure.Data;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Web.Hubs;
 
 namespace Web.Endpoints;
 
 [Controller]
-public class Api(ILogger<Api> logger, IRegistrationRepository registrationRepository,
-    IUsersRepository usersRepository, ITokenService tokenService, AuthDbContext context) : ControllerBase
+public class Api(
+    ILogger<Api> logger,
+    IRegistrationRepository registrationRepository,
+    IUsersRepository usersRepository,
+    ITokenService tokenService,
+    AuthDbContext context,
+    IHubContext<AuthHub> hubContext) : ControllerBase
 {
+
+    IHubContext<AuthHub> _hubContext = hubContext;
     AuthDbContext _context = context;
     ILogger<Api> _logger = logger;
     IRegistrationRepository _registrationRepository = registrationRepository;
@@ -31,6 +40,7 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
             {
                 return BadRequest("try again");
             }
+
             return Ok(pass);
         }
         else
@@ -40,9 +50,9 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
             var res = await _registrationRepository.SaveUser(model);
             return res.isSuccess ? Ok(res.Value.Code) : BadRequest(res.Error);
         }
-        
 
-        
+
+
 
     }
 
@@ -55,26 +65,30 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
             var token = await _tokenService.GenerateToken(dto.UserName);
             await _registrationRepository.Delete(dto.UserName);
             await _usersRepository.SaveUser(dto.UserName, token, dto.TelegramId);
-            await _hubContext.Clients.Group(confirmResult.Value.Id.ToString())
+
+
+            await _hubContext.Clients.Group(dto.UserName)
                 .SendAsync("RegistrationConfirmed", new RegistrationConfirmedDto
                 {
-                    RegistrationId = confirmResult.Value.Id,
-                    UserName = confirmResult.Value.UserName,
+                    RegistrationId = new Guid(),
+                    UserName = dto.UserName,
                     Token = token
                 });
+            return Ok();
         }
         else
         {
             return BadRequest(401);
-            
+
         }
         
-        
-        
+
+
     }
-    
-    
-    [HttpDelete("/Auth/RegisterDelete")]
+
+
+
+[HttpDelete("/Auth/RegisterDelete")]
     public async Task<IActionResult> DeleteFromReg(string name)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -99,33 +113,9 @@ public class Api(ILogger<Api> logger, IRegistrationRepository registrationReposi
         }
     }
 
-    [HttpGet("/Auth/Login")]
-    public async Task<IActionResult> AddUser([FromBody]UserDto dto)
-    {
-        var res = await _usersRepository.SaveUser(dto.userName, dto.password);
-        return res.isSuccess ? Ok(res.Value) : BadRequest(res.Error);
-    }
+    
 
-    public async Task<IActionResult> GetUser(string userName)
-    {
-        var user = await _usersRepository.GetUser(userName);
-        return user is null ? NotFound() : Ok(user);
-        
-    }
 
-    [HttpPost("/Auth/Authorize")]
-    public async Task<IActionResult> Authorize([FromBody]UserDto dto)
-    {
-        var res = await _registrationRepository.AuthorizeUser(dto.password, dto.userName);
-        if (!res)
-        {
-            return Unauthorized("Invalid credentials");
-        }
-
-        var token = await _tokenService.GenerateToken(dto.userName);
-        await _usersRepository.SaveUser(dto.userName, token);
-        return Ok();
-    }
     
     [HttpGet("/Auth/GetAll")]
     public async Task<IActionResult> GetAll()
