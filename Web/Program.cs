@@ -62,10 +62,6 @@ if (app.Environment.IsDevelopment())
 }
 app.UseRouting();
 app.UseCors("Frontend");
-app.UseAuthentication();
-    
-
-app.UseAuthorization();
 app.MapControllers();
 app.UseHttpsRedirection();
 app.MapHub<AuthHub>("/hub");
