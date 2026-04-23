@@ -56,29 +56,45 @@ public class Api(
 
     }
 
-    [HttpGet("/Auth/Confirm")]
-    public async Task<IActionResult> Confirm([FromQuery] ConfirmRegistrationRequestDto dto)
+    [HttpPost("/Auth/Confirm")]
+    public async Task<IActionResult> Confirm([FromBody] ConfirmRegistrationRequestDto dto)
     {
         var res = await _registrationRepository.Confirm(dto.Password, dto.UserName);
+        _logger.LogInformation("result is true");
         if (res)
         {
-            var token = await _tokenService.GenerateToken(dto.UserName);
-            await _registrationRepository.Delete(dto.UserName);
-            await _usersRepository.SaveUser(dto.UserName, token, dto.TelegramId);
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {   
 
+                _logger.LogInformation("generating token");
+                _logger.LogInformation($"{dto.Password} {dto.UserName} {dto.TelegramId} ");
+                var token = await _tokenService.GenerateToken(dto.UserName);
+                await _registrationRepository.Delete(dto.UserName);
+                await _usersRepository.SaveUser(dto.UserName, token, dto.TelegramId);
+                _logger.LogInformation("Success");
 
-            await _hubContext.Clients.Group(dto.UserName)
-                .SendAsync("RegistrationConfirmed", new RegistrationConfirmedDto
-                {
-                    RegistrationId = new Guid(),
-                    UserName = dto.UserName,
-                    Token = token
-                });
-            return Ok();
+                await _hubContext.Clients.Group(dto.UserName)
+                    .SendAsync("RegistrationConfirmed", new RegistrationConfirmedDto
+                    {
+                        RegistrationId = Guid.NewGuid(),
+                        UserName = dto.UserName,
+                        Token = token
+                    });
+                await transaction.CommitAsync();
+                return Ok(new { token });
+                
+            }
+            catch(Exception exception)
+            {
+               transaction.Rollback();
+               _logger.LogError("error " +  exception.Message);
+               return BadRequest();
+            }
         }
         else
         {
-            return BadRequest(401);
+            return BadRequest();
 
         }
         
@@ -113,9 +129,14 @@ public class Api(
         }
     }
 
-    
 
 
+    [HttpDelete("/Auth/UserDelete")]
+    public async Task<IActionResult> DeleteUser(string userName)
+    {
+        var res =await _usersRepository.Delete(userName);
+        return  res.isSuccess ? Ok(res.Value) : BadRequest(res.Error);
+    }
     
     [HttpGet("/Auth/GetAll")]
     public async Task<IActionResult> GetAll()

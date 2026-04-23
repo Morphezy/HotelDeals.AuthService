@@ -33,7 +33,7 @@ public class RegistrationRepository(AuthDbContext context, ILogger<RegistrationR
     {
         var model =await _context.Registrations
             .FirstOrDefaultAsync(x => x.UserName == userName);
-        return model.Code;
+        return model?.Code;
     }
 
     public async Task<Registration?> GetUserName(string password)
@@ -79,9 +79,10 @@ public class RegistrationRepository(AuthDbContext context, ILogger<RegistrationR
         return  user != null;
     }
 
-    public async Task<Registration> ChangePassword(string UserName, string NewPassword)
+    public async Task<Registration?> ChangePassword(string UserName, string NewPassword)
     {
         var user = await _context.Registrations.FirstOrDefaultAsync(a => a.UserName == UserName);
+        if (user is null) return null;
         user.Code = NewPassword;
         await _context.SaveChangesAsync();
         return user;
@@ -95,6 +96,13 @@ public class RegistrationRepository(AuthDbContext context, ILogger<RegistrationR
     public async Task<bool> Confirm(string password, string name)
     {
         var user = await _context.Registrations.FirstOrDefaultAsync(x => x.UserName == name);
-        return  user?.Code == password;
+        if (user == null)
+        {
+            _logger.LogWarning($"User with name {name} not found for confirmation");
+            return false;
+        }
+        _logger.LogInformation($"User with name {user.UserName} found, comparing {user.Code} and {password}");
+        _logger.LogInformation($"{user.Code == password}");
+        return  user.Code == password;
     }
 }

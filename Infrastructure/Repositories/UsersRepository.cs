@@ -13,15 +13,15 @@ public class UsersRepository(AuthDbContext context, ILogger<UsersRepository> log
     private readonly AuthDbContext _context = context;
     private readonly ILogger<UsersRepository> _logger = logger;
 
-    public async Task<Result<User>> SaveUser(string userName, string password, string telegramId)
+    public async Task<Result<User>> SaveUser(string userName, string token, string telegramId)
     {
         var user = new User
         {
             UserName = userName,
-            Token = password,
+            Token = token,
             TelegramId = telegramId
         };
-
+        _logger.LogInformation($"user with name  {user.UserName} and token {user.Token}, telegramid is {user.TelegramId}");
         try
         {
             await _context.Users.AddAsync(user);
