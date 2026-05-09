@@ -8,7 +8,10 @@ public class DesignTimeDbContextFactory: IDesignTimeDbContextFactory<AuthDbConte
 {
     public AuthDbContext CreateDbContext(string[] args)
     {
-        string path = Path.Combine(Directory.GetCurrentDirectory(), "../Web");
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var path = Directory.Exists(Path.Combine(currentDirectory, "Web"))
+            ? Path.Combine(currentDirectory, "Web")
+            : Path.GetFullPath(Path.Combine(currentDirectory, "../Web"));
         
         IConfigurationRoot configurationRoot = new ConfigurationBuilder().SetBasePath(path).AddJsonFile("appsettings.json").Build();
         

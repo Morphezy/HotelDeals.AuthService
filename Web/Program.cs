@@ -64,7 +64,7 @@ app.UseRouting();
 app.UseCors("Frontend");
 app.MapControllers();
 app.UseHttpsRedirection();
-app.MapHub<AuthHub>("/hub");
+app.MapHub<AuthHub>("/authHub");
 
 
 
